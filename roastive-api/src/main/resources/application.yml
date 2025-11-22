@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: roastive-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/roastive
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.springframework: info
+    com.roastive.api: debug
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+
