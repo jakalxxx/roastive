@@ -3,6 +3,7 @@ package com.roastive.api.domain.customer.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
@@ -29,6 +30,13 @@ public class CustomerRoastery {
 
     @Column(name = "approved_at")
     private OffsetDateTime approvedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (mappingId == null) mappingId = UUID.randomUUID();
+        if (requestedAt == null) requestedAt = OffsetDateTime.now();
+        if (status == null || status.isBlank()) status = "ACTIVE";
+    }
 
     public UUID getMappingId() { return mappingId; }
     public void setMappingId(UUID mappingId) { this.mappingId = mappingId; }

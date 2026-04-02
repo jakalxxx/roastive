@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.4'
     id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.flywaydb.flyway' version '10.10.0'
 }
 
 group = 'com.roastive'
@@ -11,8 +12,21 @@ java {
     sourceCompatibility = JavaVersion.VERSION_17
 }
 
+configurations {
+    flywayMigration
+}
+
 repositories {
     mavenCentral()
+}
+
+flyway {
+    url = System.getenv('FLYWAY_URL') ?: 'jdbc:postgresql://localhost:5432/roastive'
+    user = System.getenv('FLYWAY_USER') ?: 'postgres'
+    password = System.getenv('FLYWAY_PASSWORD') ?: 'postgres'
+    schemas = ['public']
+    driver = 'org.postgresql.Driver'
+    configurations = ['flywayMigration']
 }
 
 dependencies {
@@ -20,12 +34,16 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.9.1'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'org.postgresql:postgresql:42.7.4'
+
+    flywayMigration 'org.postgresql:postgresql:42.7.4'
+    flywayMigration 'org.flywaydb:flyway-database-postgresql'
 
     // MapStruct for DTO <-> Entity mapping
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'

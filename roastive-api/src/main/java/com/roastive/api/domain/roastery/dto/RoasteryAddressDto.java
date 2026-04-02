@@ -12,6 +12,7 @@ public class RoasteryAddressDto {
     private String postalCode;
     private String addressLine1;
     private String addressLine2;
+    private String branchSeqNo;
 
     public UUID getAddressId() { return addressId; }
     public void setAddressId(UUID addressId) { this.addressId = addressId; }
@@ -25,6 +26,8 @@ public class RoasteryAddressDto {
     public void setAddressLine1(String addressLine1) { this.addressLine1 = addressLine1; }
     public String getAddressLine2() { return addressLine2; }
     public void setAddressLine2(String addressLine2) { this.addressLine2 = addressLine2; }
+    public String getBranchSeqNo() { return branchSeqNo; }
+    public void setBranchSeqNo(String branchSeqNo) { this.branchSeqNo = branchSeqNo; }
 }
 
 

@@ -1,5 +1,7 @@
 package com.roastive.api.domain.sales.controller;
 
+import com.roastive.api.domain.sales.dto.SalesOrderListDto;
+import com.roastive.api.domain.sales.dto.SalesReportRowDto;
 import com.roastive.api.domain.sales.model.SalesOrder;
 import com.roastive.api.domain.sales.model.SalesOrderLine;
 import com.roastive.api.domain.sales.model.SalesOrderStatusLog;
@@ -8,12 +10,15 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,14 +33,43 @@ public class SalesController {
 
     // Orders
     @GetMapping("/orders")
-    public List<SalesOrder> listOrders() { return service.findOrders(); }
+    public List<SalesOrderListDto> listOrders(
+            @RequestParam(name = "roasteryId", required = false) UUID roasteryIdParam,
+            @RequestHeader(value = "X-Roastery-Id", required = false) String roasteryIdHeader) {
+        UUID roasteryId = resolveRoasteryId(roasteryIdParam, roasteryIdHeader);
+        if (roasteryId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "로스터리 정보를 확인할 수 없습니다.");
+        }
+        return service.findOrders(roasteryId);
+    }
+    // keep static paths before path variables to avoid UUID parsing errors on "today"
+    @GetMapping("/orders/today")
+    public ResponseEntity<?> todayOrders(
+            @RequestParam(name = "roasteryId", required = false) UUID roasteryIdParam,
+            @RequestHeader(value = "X-Roastery-Id", required = false) String roasteryIdHeader) {
+        UUID roasteryId = resolveRoasteryId(roasteryIdParam, roasteryIdHeader);
+        if (roasteryId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "로스터리 정보를 확인할 수 없습니다.");
+        }
+        OffsetDateTime start = OffsetDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        OffsetDateTime end = start.plusDays(1);
+        var items = service.findTodayOrders(roasteryId, start, end, 10);
+        long count = service.countOrdersInRange(roasteryId, start, end);
+        return ResponseEntity.ok(java.util.Map.of("count", count, "items", items));
+    }
     @GetMapping("/orders/{id}")
     public ResponseEntity<SalesOrder> getOrder(@PathVariable UUID id) {
         Optional<SalesOrder> o = service.findOrder(id);
         return o.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
-    public record OrderRequest(@NotNull Long roasteryId, @NotBlank @Size(max = 40) String orderNo,
-                               @NotNull Long customerId, @NotNull OffsetDateTime orderDate,
+    @GetMapping("/orders/{id}/detail")
+    public ResponseEntity<?> getOrderDetail(@PathVariable UUID id) {
+        return service.findOrderDetail(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    public record OrderRequest(@NotNull UUID roasteryId, @NotBlank @Size(max = 40) String orderNo,
+                               @NotNull UUID customerId, @NotNull OffsetDateTime orderDate,
                                OffsetDateTime cutoffDate, @NotBlank @Size(max = 16) String currency,
                                @NotBlank @Size(max = 32) String status, String remarks) {}
     @PostMapping("/orders")
@@ -139,6 +173,42 @@ public class SalesController {
     public ResponseEntity<Void> deleteStatus(@PathVariable UUID id) {
         service.deleteStatusLog(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/reports/orders")
+    public List<SalesReportRowDto> orderReport(
+            @RequestParam(name = "roasteryId", required = false) UUID roasteryIdParam,
+            @RequestHeader(value = "X-Roastery-Id", required = false) String roasteryIdHeader,
+            @RequestParam(name = "from", required = false) String from,
+            @RequestParam(name = "to", required = false) String to,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "direction", required = false) String direction) {
+        UUID roasteryId = resolveRoasteryId(roasteryIdParam, roasteryIdHeader);
+        if (roasteryId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "로스터리 정보를 확인할 수 없습니다.");
+        }
+        OffsetDateTime startDate = parseDate(from);
+        OffsetDateTime endDate = parseDate(to);
+        return service.generateSalesReport(roasteryId, startDate, endDate, sort, direction);
+    }
+
+    private UUID resolveRoasteryId(UUID current, String header) {
+        if (current != null) return current;
+        if (header == null || header.isBlank()) return null;
+        try {
+            return UUID.fromString(header.trim());
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private OffsetDateTime parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return OffsetDateTime.parse(value.trim());
+        } catch (DateTimeParseException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 날짜 형식입니다.", ex);
+        }
     }
 }
 

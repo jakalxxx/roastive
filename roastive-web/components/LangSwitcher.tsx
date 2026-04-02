@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import type { Route } from 'next'
 
 type Props = {
   currentLocale: 'ko' | 'en' | 'ja'
@@ -27,7 +28,7 @@ export function LangSwitcher({ currentLocale }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: next }),
-      }).finally(() => router.push(nextPath))
+      }).finally(() => router.push(nextPath as Route))
     })
   }
 

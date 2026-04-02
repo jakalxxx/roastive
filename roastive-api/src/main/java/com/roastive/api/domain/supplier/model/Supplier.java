@@ -16,8 +16,8 @@ public class Supplier {
     @Column(name = "supplier_id", nullable = false, columnDefinition = "uuid")
     private UUID supplierId;
 
-    @Column(name = "roastery_id", nullable = false)
-    private Long roasteryId;
+    @Column(name = "roastery_id", nullable = false, columnDefinition = "uuid")
+    private UUID roasteryId;
 
     @Column(name = "supplier_name", nullable = false, length = 160)
     private String supplierName;
@@ -55,8 +55,8 @@ public class Supplier {
 
     public UUID getSupplierId() { return supplierId; }
     public void setSupplierId(UUID supplierId) { this.supplierId = supplierId; }
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public String getSupplierName() { return supplierName; }
     public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
     public String getContactName() { return contactName; }

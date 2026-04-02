@@ -5,12 +5,20 @@ export function isValidBizRegNo(input: string | null | undefined): boolean {
   const s = String(input || '').replace(/\D+/g, '');
   if (s.length !== 10) return false;
   // 간단 체크섬(국세청 공식 알고리즘): 가중치 적용 후 1의 자리 비교
-  const w = [1,3,7,1,3,7,1,3,5];
+  const w = [1,3,7,1,3,7,1,3,5] as const;
   let sum = 0;
-  for (let i = 0; i < 9; i++) sum += Number(s[i]) * w[i];
-  sum += Math.floor((Number(s[8]) * 5) / 10);
+  for (let i = 0; i < 9; i++) {
+    const digit = s[i];
+    const weight = w[i];
+    if (digit === undefined || weight === undefined) return false;
+    sum += Number(digit) * weight;
+  }
+  const digit8 = s[8];
+  const digit9 = s[9];
+  if (digit8 === undefined || digit9 === undefined) return false;
+  sum += Math.floor((Number(digit8) * 5) / 10);
   const check = (10 - (sum % 10)) % 10;
-  return check === Number(s[9]);
+  return check === Number(digit9);
 }
 
 // 2) 일반 전화번호 (지역번호 포함) 예: 02-123-4567, 031-1234-5678 등

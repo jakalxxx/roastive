@@ -12,14 +12,14 @@ public class SalesOrder {
     @Column(name = "order_id", nullable = false, columnDefinition = "uuid")
     private UUID orderId;
 
-    @Column(name = "roastery_id", nullable = false)
-    private Long roasteryId;
+    @Column(name = "roastery_id", nullable = false, columnDefinition = "uuid")
+    private UUID roasteryId;
 
     @Column(name = "order_no", nullable = false, length = 40)
     private String orderNo;
 
-    @Column(name = "customer_id", nullable = false)
-    private Long customerId;
+    @Column(name = "customer_id", nullable = false, columnDefinition = "uuid")
+    private UUID customerId;
 
     @Column(name = "order_date", nullable = false)
     private OffsetDateTime orderDate;
@@ -52,12 +52,12 @@ public class SalesOrder {
 
     public UUID getOrderId() { return orderId; }
     public void setOrderId(UUID orderId) { this.orderId = orderId; }
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public String getOrderNo() { return orderNo; }
     public void setOrderNo(String orderNo) { this.orderNo = orderNo; }
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
+    public UUID getCustomerId() { return customerId; }
+    public void setCustomerId(UUID customerId) { this.customerId = customerId; }
     public OffsetDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(OffsetDateTime orderDate) { this.orderDate = orderDate; }
     public OffsetDateTime getCutoffDate() { return cutoffDate; }

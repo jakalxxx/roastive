@@ -17,8 +17,8 @@ public class ProductMaster {
     @Column(name = "product_id", nullable = false, columnDefinition = "uuid")
     private UUID productId;
 
-    @Column(name = "roastery_id", nullable = false)
-    private Long roasteryId;
+    @Column(name = "roastery_id", nullable = false, columnDefinition = "uuid")
+    private UUID roasteryId;
 
     @Column(name = "product_name", nullable = false, length = 160)
     private String productName;
@@ -56,8 +56,8 @@ public class ProductMaster {
 
     public UUID getProductId() { return productId; }
     public void setProductId(UUID productId) { this.productId = productId; }
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
     public String getProductType() { return productType; }

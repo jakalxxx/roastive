@@ -17,4 +17,9 @@ public interface RoasteryRepository extends JpaRepository<Roastery, UUID> {
      * @return 해당 사업자 등록 번호를 가진 로스터리가 존재하면 true, 그렇지 않으면 false
      */
     boolean existsByBusinessRegNo(String businessRegNo);
+
+    /**
+     * 코드 중복 여부 확인 (예: RST-00001).
+     */
+    boolean existsByCode(String code);
 }

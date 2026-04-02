@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { me, login as doLogin, logout as doLogout, register as doRegister } from '@/lib/auth';
 
-type User = { user?: any } | null;
+type User = { user?: any; roasteries?: any[] } | null;
 type Ctx = { user: User; loading: boolean; login: (e:string,p:string)=>Promise<void>; logout: ()=>Promise<void>; register: (p:{email:string;password:string;display_name?:string;autoLogin?:boolean})=>Promise<void> };
 
 const AuthCtx = createContext<Ctx>({ user: null, loading: true, async login(){}, async logout(){}, async register(){} });

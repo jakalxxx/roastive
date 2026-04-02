@@ -11,24 +11,35 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
+@SuppressWarnings("null")
 public class ProductService {
     private final ProductMasterRepository productRepo;
     private final ProductVariantRepository variantRepo;
     private final ProductRecipeRepository recipeRepo;
     private final ProductAssetRepository assetRepo;
+    private final ProductBasePriceRepository basePriceRepo;
+    private final ProductRecipeSetRepository recipeSetRepo;
 
     public ProductService(ProductMasterRepository productRepo,
                           ProductVariantRepository variantRepo,
                           ProductRecipeRepository recipeRepo,
-                          ProductAssetRepository assetRepo) {
+                          ProductAssetRepository assetRepo,
+                          ProductBasePriceRepository basePriceRepo,
+                          ProductRecipeSetRepository recipeSetRepo) {
         this.productRepo = productRepo;
         this.variantRepo = variantRepo;
         this.recipeRepo = recipeRepo;
         this.assetRepo = assetRepo;
+        this.basePriceRepo = basePriceRepo;
+        this.recipeSetRepo = recipeSetRepo;
     }
 
     // product master
     public List<ProductMaster> findProducts() { return productRepo.findAll(); }
+    public List<ProductMaster> findProductsByRoastery(UUID roasteryId) {
+        if (roasteryId == null) return findProducts();
+        return productRepo.findByRoasteryId(roasteryId);
+    }
     public Optional<ProductMaster> findProduct(UUID id) { return productRepo.findById(id); }
     @Transactional public ProductMaster createProduct(ProductMaster m) { return productRepo.save(m); }
     @Transactional public Optional<ProductMaster> updateProduct(UUID id, ProductMaster u) {
@@ -97,6 +108,43 @@ public class ProductService {
         });
     }
     @Transactional public void deleteAsset(UUID id) { assetRepo.deleteById(id); }
+
+    // base price
+    public List<ProductBasePrice> findBasePrices() { return basePriceRepo.findAll(); }
+    public Optional<ProductBasePrice> findBasePrice(UUID id) { return basePriceRepo.findById(id); }
+    public List<ProductBasePrice> findBasePricesByProduct(UUID productId) { return basePriceRepo.findByProductId(productId); }
+    @Transactional public ProductBasePrice createBasePrice(ProductBasePrice p) { return basePriceRepo.save(p); }
+    @Transactional public Optional<ProductBasePrice> updateBasePrice(UUID id, ProductBasePrice u) {
+        return basePriceRepo.findById(id).map(e -> {
+            e.setProductId(u.getProductId());
+            e.setCurrency(u.getCurrency());
+            e.setAmount(u.getAmount());
+            e.setPriceLabel(u.getPriceLabel());
+            e.setEffectiveFrom(u.getEffectiveFrom());
+            e.setEffectiveTo(u.getEffectiveTo());
+            e.setUpdatedAt(u.getUpdatedAt());
+            return basePriceRepo.save(e);
+        });
+    }
+    @Transactional public void deleteBasePrice(UUID id) { basePriceRepo.deleteById(id); }
+
+    // recipe set
+    public List<ProductRecipeSet> findRecipeSets() { return recipeSetRepo.findAll(); }
+    public Optional<ProductRecipeSet> findRecipeSet(UUID id) { return recipeSetRepo.findById(id); }
+    public List<ProductRecipeSet> findRecipeSetsByProduct(UUID productId) { return recipeSetRepo.findByProductId(productId); }
+    @Transactional public ProductRecipeSet createRecipeSet(ProductRecipeSet set) { return recipeSetRepo.save(set); }
+    @Transactional public Optional<ProductRecipeSet> updateRecipeSet(UUID id, ProductRecipeSet u) {
+        return recipeSetRepo.findById(id).map(e -> {
+            e.setProductId(u.getProductId());
+            e.setSetName(u.getSetName());
+            e.setDescription(u.getDescription());
+            e.setStatus(u.getStatus());
+            e.setIngredients(u.getIngredients());
+            e.setUpdatedAt(u.getUpdatedAt());
+            return recipeSetRepo.save(e);
+        });
+    }
+    @Transactional public void deleteRecipeSet(UUID id) { recipeSetRepo.deleteById(id); }
 }
 
 

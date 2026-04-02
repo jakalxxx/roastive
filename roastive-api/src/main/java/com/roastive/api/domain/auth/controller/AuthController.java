@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,8 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Invalid credentials"));
         }
         UserAccount user = userOpt.get();
+        user.setLastLoginAt(OffsetDateTime.now());
+        userAccountRepository.save(user);
         return ResponseEntity.ok(Map.of(
                 "ok", true,
                 "token", "stub-token",
@@ -115,8 +118,13 @@ public class AuthController {
                 "ok", true,
                 "user", anyUser.map(u -> Map.of(
                         "email", u.getEmail(),
-                        "display_name", u.getDisplayName() == null ? "" : u.getDisplayName()
-                )).orElseGet(() -> Map.of("email", "stub@example.com", "display_name", "")),
+                        "display_name", u.getDisplayName() == null ? "" : u.getDisplayName(),
+                        "last_login_at", u.getLastLoginAt() == null ? "" : u.getLastLoginAt().toString()
+                )).orElseGet(() -> Map.of(
+                        "email", "stub@example.com",
+                        "display_name", "",
+                        "last_login_at", ""
+                )),
                 "roasteries", roasteries
         ));
     }

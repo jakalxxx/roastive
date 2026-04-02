@@ -75,8 +75,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private boolean isMutedEndpoint(String uri) {
         if (uri == null) return false;
-        // Suppress logs for code set lookups
-        return uri.startsWith("/v2/code-sets") || uri.startsWith("/v2/codes");
+        // Suppress logs for code set/menu lookups to avoid noisy payloads
+        return uri.startsWith("/v2/code-sets")
+                || uri.startsWith("/v2/codes")
+                || uri.startsWith("/v2/menus");
     }
 
     private String redactSensitive(String body) {

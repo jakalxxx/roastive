@@ -1,5 +1,10 @@
 package com.roastive.api.domain.sales.service;
 
+import com.roastive.api.domain.sales.dto.SalesOrderListDto;
+import com.roastive.api.domain.sales.dto.SalesOrderDetailDto;
+import com.roastive.api.domain.sales.dto.SalesOrderLineDto;
+import com.roastive.api.domain.sales.dto.SalesReportProjection;
+import com.roastive.api.domain.sales.dto.SalesReportRowDto;
 import com.roastive.api.domain.sales.model.SalesOrder;
 import com.roastive.api.domain.sales.model.SalesOrderLine;
 import com.roastive.api.domain.sales.model.SalesOrderStatusLog;
@@ -9,9 +14,13 @@ import com.roastive.api.domain.sales.repository.SalesOrderStatusLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -19,6 +28,9 @@ public class SalesService {
     private final SalesOrderRepository orderRepo;
     private final SalesOrderLineRepository lineRepo;
     private final SalesOrderStatusLogRepository statusRepo;
+    private static final List<String> REPORT_STATUSES = List.of(
+            "SHIPPED", "DELIVERED", "SETTLED", "발송완료", "정산완료"
+    );
 
     public SalesService(SalesOrderRepository orderRepo,
                         SalesOrderLineRepository lineRepo,
@@ -29,8 +41,34 @@ public class SalesService {
     }
 
     // Orders
-    public List<SalesOrder> findOrders() { return orderRepo.findAll(); }
+    public List<SalesOrderListDto> findOrders(UUID roasteryId) {
+        if (roasteryId == null) return List.of();
+        return orderRepo.findOrderSummaries(roasteryId).stream()
+                .map(SalesOrderListDto::fromProjection)
+                .toList();
+    }
+    public List<SalesOrderListDto> findTodayOrders(UUID roasteryId, OffsetDateTime start, OffsetDateTime end, int limit) {
+        if (roasteryId == null) return List.of();
+        return orderRepo.findTodayOrders(roasteryId, start, end, limit).stream()
+                .map(SalesOrderListDto::fromProjection)
+                .toList();
+    }
+    public long countOrdersInRange(UUID roasteryId, OffsetDateTime start, OffsetDateTime end) {
+        if (roasteryId == null) return 0;
+        return orderRepo.countOrdersInRange(roasteryId, start, end);
+    }
     public Optional<SalesOrder> findOrder(UUID id) { return orderRepo.findById(id); }
+    public Optional<SalesOrderDetailDto> findOrderDetail(UUID id) {
+        return orderRepo.findById(id).map(order -> {
+            SalesOrderDetailDto dto = new SalesOrderDetailDto();
+            dto.setOrder(order);
+            dto.setLines(orderRepo.findOrderLines(id).stream()
+                    .map(SalesOrderLineDto::fromProjection)
+                    .toList());
+            dto.setStatusLogs(statusRepo.findByOrderIdOrderByChangedAtDesc(id));
+            return dto;
+        });
+    }
     @Transactional public SalesOrder createOrder(SalesOrder o) { return orderRepo.save(o); }
     @Transactional public Optional<SalesOrder> updateOrder(UUID id, SalesOrder u) {
         return orderRepo.findById(id).map(e -> {
@@ -81,6 +119,49 @@ public class SalesService {
         });
     }
     @Transactional public void deleteStatusLog(UUID id) { statusRepo.deleteById(id); }
+
+    public List<SalesReportRowDto> generateSalesReport(UUID roasteryId,
+                                                       OffsetDateTime startDate,
+                                                       OffsetDateTime endDate,
+                                                       String sortKey,
+                                                       String direction) {
+        if (roasteryId == null) return List.of();
+        List<SalesReportProjection> projections = orderRepo.findReportRows(roasteryId, startDate, endDate, REPORT_STATUSES);
+        List<SalesReportRowDto> rows = projections.stream()
+                .map(SalesReportRowDto::fromProjection)
+                .collect(Collectors.toList());
+
+        Comparator<SalesReportRowDto> comparator = buildComparator(sortKey);
+        if ("asc".equalsIgnoreCase(direction)) {
+            rows.sort(comparator);
+        } else {
+            rows.sort(comparator.reversed());
+        }
+        return rows;
+    }
+
+    private Comparator<SalesReportRowDto> buildComparator(String sortKey) {
+        Comparator<SalesReportRowDto> byDate = Comparator.comparing(
+                SalesReportRowDto::getOrderDate,
+                Comparator.nullsLast(Comparator.naturalOrder())
+        );
+        if ("customerName".equalsIgnoreCase(sortKey)) {
+            return Comparator.comparing(row -> safeString(row.getCustomerName()), String.CASE_INSENSITIVE_ORDER);
+        }
+        if ("blendName".equalsIgnoreCase(sortKey) || "blendNames".equalsIgnoreCase(sortKey)) {
+            return Comparator.comparing(row -> safeString(row.getBlendNames()), String.CASE_INSENSITIVE_ORDER);
+        }
+        if ("amount".equalsIgnoreCase(sortKey)) {
+            return Comparator.comparing(
+                    row -> row.getTotalAmount() != null ? row.getTotalAmount() : BigDecimal.ZERO
+            );
+        }
+        return byDate;
+    }
+
+    private String safeString(String value) {
+        return value == null ? "" : value;
+    }
 }
 
 

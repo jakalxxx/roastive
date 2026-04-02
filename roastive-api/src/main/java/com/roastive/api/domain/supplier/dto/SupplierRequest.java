@@ -5,10 +5,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SupplierRequest {
-    @NotNull private Long roasteryId;
+    @NotNull private UUID roasteryId;
     @NotBlank @Size(max = 160) private String supplierName;
     @Size(max = 120) private String contactName;
     @Size(max = 60) private String phone;
@@ -17,8 +18,8 @@ public class SupplierRequest {
     private String address;
     @NotBlank @Size(max = 32) private String status;
 
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public String getSupplierName() { return supplierName; }
     public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
     public String getContactName() { return contactName; }

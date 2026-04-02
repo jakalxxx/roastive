@@ -26,7 +26,9 @@ public class ProductController {
 
     // product master
     @GetMapping
-    public List<ProductMaster> listProducts() { return service.findProducts(); }
+    public List<ProductMaster> listProducts(@RequestParam(name = "roasteryId", required = false) UUID roasteryId) {
+        return service.findProductsByRoastery(roasteryId);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductMaster> getProduct(@PathVariable UUID id) {
@@ -35,7 +37,7 @@ public class ProductController {
     }
 
     public record ProductMasterRequest(
-            @NotNull Long roasteryId,
+            @NotNull UUID roasteryId,
             @NotBlank @Size(max = 160) String productName,
             @NotBlank @Size(max = 32) String productType,
             @NotBlank @Size(max = 16) String unit,
@@ -196,6 +198,95 @@ public class ProductController {
     @DeleteMapping("/assets/{id}")
     public ResponseEntity<Void> deleteAsset(@PathVariable UUID id) {
         service.deleteAsset(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // base price
+    public record BasePriceRequest(
+            @NotNull UUID productId,
+            @NotBlank @Size(max = 16) String currency,
+            @NotNull BigDecimal amount,
+            @Size(max = 120) String priceLabel,
+            OffsetDateTime effectiveFrom,
+            OffsetDateTime effectiveTo
+    ) {}
+
+    @GetMapping("/base-prices")
+    public List<ProductBasePrice> listBasePrices() { return service.findBasePrices(); }
+
+    @PostMapping("/base-prices")
+    public ResponseEntity<ProductBasePrice> createBasePrice(@Valid @RequestBody BasePriceRequest req) {
+        ProductBasePrice p = new ProductBasePrice();
+        p.setProductId(req.productId());
+        p.setCurrency(req.currency());
+        p.setAmount(req.amount());
+        p.setPriceLabel(req.priceLabel());
+        p.setEffectiveFrom(req.effectiveFrom());
+        p.setEffectiveTo(req.effectiveTo());
+        p.setCreatedAt(OffsetDateTime.now());
+        p.setUpdatedAt(OffsetDateTime.now());
+        return ResponseEntity.ok(service.createBasePrice(p));
+    }
+
+    @PutMapping("/base-prices/{id}")
+    public ResponseEntity<ProductBasePrice> updateBasePrice(@PathVariable UUID id, @Valid @RequestBody BasePriceRequest req) {
+        ProductBasePrice p = new ProductBasePrice();
+        p.setProductId(req.productId());
+        p.setCurrency(req.currency());
+        p.setAmount(req.amount());
+        p.setPriceLabel(req.priceLabel());
+        p.setEffectiveFrom(req.effectiveFrom());
+        p.setEffectiveTo(req.effectiveTo());
+        p.setUpdatedAt(OffsetDateTime.now());
+        return service.updateBasePrice(id, p).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/base-prices/{id}")
+    public ResponseEntity<Void> deleteBasePrice(@PathVariable UUID id) {
+        service.deleteBasePrice(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // recipe set
+    public record RecipeSetRequest(
+            @NotNull UUID productId,
+            @NotBlank @Size(max = 120) String setName,
+            String description,
+            @NotBlank @Size(max = 32) String status,
+            String ingredients
+    ) {}
+
+    @GetMapping("/recipe-sets")
+    public List<ProductRecipeSet> listRecipeSets() { return service.findRecipeSets(); }
+
+    @PostMapping("/recipe-sets")
+    public ResponseEntity<ProductRecipeSet> createRecipeSet(@Valid @RequestBody RecipeSetRequest req) {
+        ProductRecipeSet set = new ProductRecipeSet();
+        set.setProductId(req.productId());
+        set.setSetName(req.setName());
+        set.setDescription(req.description());
+        set.setStatus(req.status());
+        set.setIngredients(req.ingredients());
+        set.setCreatedAt(OffsetDateTime.now());
+        set.setUpdatedAt(OffsetDateTime.now());
+        return ResponseEntity.ok(service.createRecipeSet(set));
+    }
+
+    @PutMapping("/recipe-sets/{id}")
+    public ResponseEntity<ProductRecipeSet> updateRecipeSet(@PathVariable UUID id, @Valid @RequestBody RecipeSetRequest req) {
+        ProductRecipeSet set = new ProductRecipeSet();
+        set.setProductId(req.productId());
+        set.setSetName(req.setName());
+        set.setDescription(req.description());
+        set.setStatus(req.status());
+        set.setIngredients(req.ingredients());
+        set.setUpdatedAt(OffsetDateTime.now());
+        return service.updateRecipeSet(id, set).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/recipe-sets/{id}")
+    public ResponseEntity<Void> deleteRecipeSet(@PathVariable UUID id) {
+        service.deleteRecipeSet(id);
         return ResponseEntity.noContent().build();
     }
 }

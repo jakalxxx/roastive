@@ -3,7 +3,11 @@
 import SettingsNav from '@/components/SettingsNav'
 import ContactCardList from '@/app/[locale]/(app)/roastery/settings/contacts/ContactCardList'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { AlertDialog } from '@/components/AlertDialog'
+import { PageHeading } from '@/components/PageHeading'
+import { FormRow } from '@/components/FormRow'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,10 +21,16 @@ type Contact = { contact_id: string; contact_name: string; position?: string|nul
 
 export default function RoasteryContactsPage() {
   useSessionGuard(1000 * 60 * 5)
+  const pathname = usePathname() || '/ko'
+  const seg = pathname.split('/').filter(Boolean)
+  const locale = (seg[0] === 'en' || seg[0] === 'ja' || seg[0] === 'ko') ? seg[0] : 'ko'
+  const base = `/${locale}`
   const [items, setItems] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [showBasicInfoAlert, setShowBasicInfoAlert] = useState(false)
+  const [alertDialog, setAlertDialog] = useState<{ title?: string; message: string } | null>(null)
   const schema = z.object({
     contact_name: z.string().min(1, '이름은 필수입니다.'),
     position: z.string().optional(),
@@ -60,12 +70,24 @@ export default function RoasteryContactsPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { refresh() }, [])
+  useEffect(() => {
+    // 로스터리 기본정보 확인
+    fetch('/api/roastery/settings', { cache: 'no-store', credentials: 'include' })
+      .then(r => r.json())
+      .then(({ data }) => {
+        const hasBasicInfo = data?.legal_name || data?.business_reg_no
+        if (!hasBasicInfo) {
+          setShowBasicInfoAlert(true)
+        }
+      })
+      .catch(() => {})
+    refresh()
+  }, [])
 
   const onSubmit = async (v: any) => {
     // 전화/휴대전화 간단 검증 (하나라도 형식 유효하면 통과)
     if (v.phone && !(isValidTelephone(v.phone) || isValidMobile(v.phone))) {
-      alert('유효한 전화번호 형식이 아닙니다.')
+      setAlertDialog({ title: '알림', message: '유효한 전화번호 형식이 아닙니다.' })
       return
     }
     const url = editingId ? `/api/roastery/contacts/${editingId}` : '/api/roastery/contacts'
@@ -75,7 +97,7 @@ export default function RoasteryContactsPage() {
       // Try preflight then notify
       const pre = await fetch('/api/roastery/settings', { cache: 'no-store', credentials: 'include' })
       if (pre.status === 401) {
-        alert('로그인이 필요합니다. 다시 로그인 후 시도해주세요.')
+        setAlertDialog({ title: '알림', message: '로그인이 필요합니다. 다시 로그인 후 시도해주세요.' })
         return
       }
     }
@@ -83,54 +105,84 @@ export default function RoasteryContactsPage() {
   }
 
   return (
-    <div className="">
+    <>
+      <PageHeading
+        title="담당자 관리"
+        description="대표/실무 연락처를 관리하세요"
+        breadcrumbs={[
+          { name: '홈', href: `${base}/dashboard` },
+          { name: '로스터리 관리', href: `${base}/roastery/settings` },
+          { name: '담당자 관리' },
+        ]}
+      />
       <SettingsNav />
-      <section className="divide-y divide-gray-200 dark:divide-white/10">
-        <div className="grid max-w-7xl grid-cols-1 gap-x-8 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">
-          <div>
-            <h2 className="text-base/7 font-semibold text-gray-900 dark:text-white">담당자 관리</h2>
-            <p className="mt-1 text-sm/6 text-gray-500 dark:text-gray-400">대표/실무 연락처를 관리하세요</p>
-          </div>
-          <form onSubmit={handleSubmit(onSubmit)} className="md:col-span-2 grid grid-cols-1 gap-y-6 sm:max-w-xl">
-            <div>
-              <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">이름</label>
-              <input className="mt-2 w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500" {...register('contact_name')} />
-              {errors.contact_name && <p className="mt-1 text-sm text-red-600">{errors.contact_name.message as string}</p>}
-            </div>
-            <div>
-              <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">직책/직무</label>
-              <input className="mt-2 w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500" {...register('position')} />
-            </div>
-            <div>
-              <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">연락처</label>
+      <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-8">
+        <section className="space-y-10">
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900/40">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+              <div>
+                <h2 className="text-base/7 font-semibold text-gray-900 dark:text-white">담당자 관리</h2>
+                <p className="mt-1 text-sm/6 text-gray-500 dark:text-gray-400">대표/실무 연락처를 관리하세요</p>
+              </div>
+              <form onSubmit={handleSubmit(onSubmit)} className="md:col-span-2 space-y-8">
+            <FormRow label="이름" htmlFor="contact_name">
+              <div className="space-y-2">
+                <input
+                  id="contact_name"
+                  className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500"
+                  {...register('contact_name')}
+                />
+                {errors.contact_name && <p className="text-sm text-red-600">{errors.contact_name.message as string}</p>}
+              </div>
+            </FormRow>
+            <FormRow label="직책/직무" htmlFor="position">
               <input
-                className="mt-2 w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500"
-                {...register('phone', { onChange: (e) => { e.target.value = formatKoreanPhone(e.target.value) } })}
+                id="position"
+                className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500"
+                {...register('position')}
               />
-              {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone.message as string}</p>}
-            </div>
-            <div>
-              <label className="block text-sm/6 font-medium text-gray-900 dark:text-white">이메일</label>
-              <input type="email" className="mt-2 w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500" {...register('email')} />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message as string}</p>}
-            </div>
-            <div>
+            </FormRow>
+            <FormRow label="연락처" htmlFor="phone">
+              <div className="space-y-2">
+                <input
+                  id="phone"
+                  className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500"
+                  {...register('phone', { onChange: (e) => { e.target.value = formatKoreanPhone(e.target.value) } })}
+                />
+                {errors.phone && <p className="text-sm text-red-600">{errors.phone.message as string}</p>}
+              </div>
+            </FormRow>
+            <FormRow label="이메일" htmlFor="email">
+              <div className="space-y-2">
+                <input
+                  id="email"
+                  type="email"
+                  className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600 sm:text-sm/6 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-500 dark:focus:ring-indigo-500"
+                  {...register('email')}
+                />
+                {errors.email && <p className="text-sm text-red-600">{errors.email.message as string}</p>}
+              </div>
+            </FormRow>
+            <FormRow label="대표 연락처 지정">
               <label className="inline-flex items-center gap-2 text-sm/6 text-gray-700 dark:text-gray-300">
                 <input type="checkbox" {...register('is_primary')} /> 대표 연락처로 지정
               </label>
+            </FormRow>
+            <div className="flex justify-end">
+              <button className="btn-register">
+                {editingId ? '담당자 수정' : '담당자 등록'}
+              </button>
             </div>
-            <div>
-              <button className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500">저장</button>
+              </form>
             </div>
-          </form>
-        </div>
-
-        <div className="grid max-w-7xl grid-cols-1 gap-x-8 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">
-          <div>
-            <h2 className="text-base/7 font-semibold text-gray-900 dark:text-white">담당자 목록</h2>
-            <p className="mt-1 text-sm/6 text-gray-500 dark:text-gray-400">등록된 담당자 목록</p>
           </div>
-          <div className="md:col-span-2">
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-gray-900/40">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
+              <div>
+                <h2 className="text-base/7 font-semibold text-gray-900 dark:text-white">담당자 목록</h2>
+                <p className="mt-1 text-sm/6 text-gray-500 dark:text-gray-400">등록된 담당자 목록</p>
+              </div>
+              <div className="md:col-span-2">
             <ContactCardList
               items={items.map((c) => ({ id: c.contact_id, title: c.contact_name, subtitle: `${c.position || ''} ${c.phone || ''} ${c.email || ''}`.trim() }))}
               onEdit={(id) => {
@@ -147,8 +199,10 @@ export default function RoasteryContactsPage() {
                 setConfirmDeleteId(String(id))
               }}
             />
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
         <ConfirmDialog
           open={confirmDeleteId !== null}
           title="삭제하시겠습니까?"
@@ -164,8 +218,32 @@ export default function RoasteryContactsPage() {
             if (res.ok) refresh()
           }}
         />
-      </section>
-    </div>
+        <AlertDialog
+          open={Boolean(alertDialog)}
+          title={alertDialog?.title}
+          message={alertDialog?.message}
+          onClose={() => setAlertDialog(null)}
+        />
+        {showBasicInfoAlert && (
+          <ConfirmDialog
+            open={showBasicInfoAlert}
+            title="알림"
+            message="로스터리 기본 정보를 먼저 등록해주세요."
+            cancelText=""
+            confirmText="확인"
+            variant="info"
+            onClose={() => setShowBasicInfoAlert(false)}
+            onConfirm={() => {
+              setShowBasicInfoAlert(false)
+              const pathname = window.location.pathname
+              const seg = pathname.split('/').filter(Boolean)
+              const locale = (seg[0] === 'en' || seg[0] === 'ja' || seg[0] === 'ko') ? seg[0] : 'ko'
+              window.location.href = `/${locale}/roastery/settings`
+            }}
+          />
+        )}
+      </div>
+    </>
   )
 }
 

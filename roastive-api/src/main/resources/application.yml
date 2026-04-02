@@ -26,8 +26,18 @@ server:
 logging:
   level:
     org.hibernate.SQL: warn
+    org.hibernate.type.descriptor.sql.BasicBinder: off
     org.springframework: info
     com.roastive.api: debug
+    p6spy: info
+    com.p6spy: info
+
+decorator:
+  datasource:
+    enabled: true
+    p6spy:
+      enabled: true
+      enable-logging: true
 
 springdoc:
   swagger-ui:

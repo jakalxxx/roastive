@@ -12,12 +12,21 @@ export function isValidBizRegNo(brn: string): boolean {
   const s = normalizeDigits(brn);
   if (s.length !== 10) return false;
   const d = s.split('').map(Number);
-  const w = [1, 3, 7, 1, 3, 7, 1, 3, 5];
+  if (d.length !== 10) return false;
+  const w = [1, 3, 7, 1, 3, 7, 1, 3, 5] as const;
   let sum = 0;
-  for (let i = 0; i < 9; i++) sum += d[i] * w[i];
-  sum += Math.floor((d[8] * 5) / 10);
+  for (let i = 0; i < 9; i++) {
+    const digit = d[i];
+    const weight = w[i];
+    if (digit === undefined || weight === undefined) return false;
+    sum += digit * weight;
+  }
+  const digit8 = d[8];
+  const digit9 = d[9];
+  if (digit8 === undefined || digit9 === undefined) return false;
+  sum += Math.floor((digit8 * 5) / 10);
   const check = (10 - (sum % 10)) % 10;
-  return check === d[9];
+  return check === digit9;
 }
 
 /** KR 전화번호 정규검증(간단형) */

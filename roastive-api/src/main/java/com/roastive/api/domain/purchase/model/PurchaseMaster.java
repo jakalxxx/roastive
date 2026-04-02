@@ -17,8 +17,8 @@ public class PurchaseMaster {
     @Column(name = "purchase_id", nullable = false, columnDefinition = "uuid")
     private UUID purchaseId;
 
-    @Column(name = "roastery_id", nullable = false)
-    private Long roasteryId;
+    @Column(name = "roastery_id", nullable = false, columnDefinition = "uuid")
+    private UUID roasteryId;
 
     @Column(name = "supplier_id", nullable = false, columnDefinition = "uuid")
     private UUID supplierId;
@@ -69,8 +69,8 @@ public class PurchaseMaster {
 
     public UUID getPurchaseId() { return purchaseId; }
     public void setPurchaseId(UUID purchaseId) { this.purchaseId = purchaseId; }
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public UUID getSupplierId() { return supplierId; }
     public void setSupplierId(UUID supplierId) { this.supplierId = supplierId; }
     public String getPurchaseNo() { return purchaseNo; }

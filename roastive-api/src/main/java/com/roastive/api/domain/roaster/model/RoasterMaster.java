@@ -16,8 +16,8 @@ public class RoasterMaster {
     @Column(name = "roaster_id", nullable = false, columnDefinition = "uuid")
     private UUID roasterId;
 
-    @Column(name = "roastery_id", nullable = false)
-    private Long roasteryId;
+    @Column(name = "roastery_id", nullable = false, columnDefinition = "uuid")
+    private UUID roasteryId;
 
     @Column(name = "roaster_name", nullable = false, length = 160)
     private String roasterName;
@@ -52,8 +52,8 @@ public class RoasterMaster {
 
     public UUID getRoasterId() { return roasterId; }
     public void setRoasterId(UUID roasterId) { this.roasterId = roasterId; }
-    public Long getRoasteryId() { return roasteryId; }
-    public void setRoasteryId(Long roasteryId) { this.roasteryId = roasteryId; }
+    public UUID getRoasteryId() { return roasteryId; }
+    public void setRoasteryId(UUID roasteryId) { this.roasteryId = roasteryId; }
     public String getRoasterName() { return roasterName; }
     public void setRoasterName(String roasterName) { this.roasterName = roasterName; }
     public String getManufacturer() { return manufacturer; }

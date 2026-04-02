@@ -50,6 +50,10 @@ public class RoasteryAddressService {
     private RoasteryAddressDto toDto(RoasteryAddress a) {
         RoasteryAddressDto dto = addressMapper.toDto(a);
         dto.setAddressTypeLabel(labelForType(a.getAddressType()));
+        if (dto.getBranchSeqNo() == null) {
+            siteRepository.findByAddressId(a.getAddressId())
+                    .ifPresent(site -> dto.setBranchSeqNo(site.getBranchSeqNo()));
+        }
         return dto;
     }
 
@@ -90,6 +94,7 @@ public class RoasteryAddressService {
                 existing.setState(req.getState());
                 existing.setCountry(Optional.ofNullable(req.getCountry()).orElse("KR"));
                 existing.setDefault(true);
+                existing.setBranchSeqNo("0000");
                 RoasteryAddress saved = addressRepository.save(existing);
                 return toDto(saved);
             }
@@ -105,27 +110,9 @@ public class RoasteryAddressService {
         addr.setCity(req.getCity());
         addr.setState(req.getState());
         addr.setCountry(Optional.ofNullable(req.getCountry()).orElse("KR"));
-        addr.setDefault("HEADQUARTERS".equalsIgnoreCase(type));
-        addr.setCreatedAt(OffsetDateTime.now());
-        RoasteryAddress saved = addressRepository.save(addr);
-
-        RoasterySite site = new RoasterySite();
-        site.setSiteId(UUID.randomUUID());
-        site.setRoasteryId(r.getRoasteryId());
-        String siteCode = (type + "-" + UUID.randomUUID().toString().substring(0, 6)).toUpperCase();
-        String siteName = "HEADQUARTERS".equalsIgnoreCase(type)
-                ? Optional.ofNullable(r.getLegalName()).filter(s -> !s.isBlank()).orElse("본점")
-                : Optional.ofNullable(req.getSiteName()).filter(s -> !s.isBlank()).orElse("사업장");
-        String siteType = Optional.ofNullable(req.getSiteType()).orElse("OFFICE");
-        site.setSiteCode(siteCode);
-        site.setSiteName(siteName);
-        site.setType(siteType);
         boolean isHQ = "HEADQUARTERS".equalsIgnoreCase(type);
-        site.setDefault(isHQ);
-        site.setAddressId(saved.getAddressId());
-        site.setStatus("ACTIVE");
-        site.setCreatedAt(OffsetDateTime.now());
-        // 종사업장 번호: HQ는 0000 고정, 그 외는 사용자가 입력한 값 사용(형식/중복 검증)
+        addr.setDefault(isHQ);
+        addr.setCreatedAt(OffsetDateTime.now());
         String branchSeqNo = "0000";
         if (!isHQ) {
             String userSeq = Optional.ofNullable(req.getBranchSeqNo()).orElse("").trim();
@@ -137,6 +124,24 @@ public class RoasteryAddressService {
             }
             branchSeqNo = userSeq;
         }
+        addr.setBranchSeqNo(branchSeqNo);
+        RoasteryAddress saved = addressRepository.save(addr);
+
+        RoasterySite site = new RoasterySite();
+        site.setSiteId(UUID.randomUUID());
+        site.setRoasteryId(r.getRoasteryId());
+        String siteCode = (type + "-" + UUID.randomUUID().toString().substring(0, 6)).toUpperCase();
+        String siteName = isHQ
+                ? Optional.ofNullable(r.getLegalName()).filter(s -> !s.isBlank()).orElse("본점")
+                : Optional.ofNullable(req.getSiteName()).filter(s -> !s.isBlank()).orElse("사업장");
+        String siteType = Optional.ofNullable(req.getSiteType()).orElse("OFFICE");
+        site.setSiteCode(siteCode);
+        site.setSiteName(siteName);
+        site.setType(siteType);
+        site.setDefault(isHQ);
+        site.setAddressId(saved.getAddressId());
+        site.setStatus("ACTIVE");
+        site.setCreatedAt(OffsetDateTime.now());
         site.setBranchSeqNo(branchSeqNo);
         siteRepository.save(site);
 
@@ -166,7 +171,29 @@ public class RoasteryAddressService {
             if (req.getCity() != null) a.setCity(req.getCity());
             if (req.getState() != null) a.setState(req.getState());
             if (req.getCountry() != null) a.setCountry(req.getCountry());
+            // Update branch seq (non-HQ only)
+            if (!"HEADQUARTERS".equalsIgnoreCase(a.getAddressType()) && req.getBranchSeqNo() != null && !req.getBranchSeqNo().isBlank()) {
+                String userSeq = req.getBranchSeqNo().trim();
+                if (!userSeq.matches("^[0-9]{4}$")) {
+                    throw new IllegalArgumentException("종사업장 번호는 숫자 4자리여야 합니다.");
+                }
+                Roastery r = ro.get();
+                if (siteRepository.existsByRoasteryIdAndBranchSeqNo(r.getRoasteryId(), userSeq)) {
+                    siteRepository.findByAddressId(a.getAddressId()).ifPresent(existingSite -> {
+                        if (!Objects.equals(existingSite.getBranchSeqNo(), userSeq)) {
+                            throw new IllegalArgumentException("이미 사용 중인 종사업장 번호입니다.");
+                        }
+                    });
+                }
+                a.setBranchSeqNo(userSeq);
+                siteRepository.findByAddressId(a.getAddressId()).ifPresent(existingSite -> {
+                    existingSite.setBranchSeqNo(userSeq);
+                    siteRepository.save(existingSite);
+                });
+            }
+
             RoasteryAddress saved = addressRepository.save(a);
+            
             return toDto(saved);
         });
     }

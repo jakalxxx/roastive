@@ -1,22 +1,29 @@
 package com.roastive.api.domain.roastery.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class RoasteryRequestDto {
+    @JsonAlias("roastery_name")
     @NotBlank @Size(max = 120)
     private String roasteryName;
-    @NotBlank @Size(max = 32)
+    @JsonAlias("code")
+    @Size(max = 32)
     private String code;
     @NotBlank @Size(max = 32)
     private String status;
+    @JsonAlias("legal_name")
     @Size(max = 160)
     private String legalName;
+    @JsonAlias("representative_name")
     @Size(max = 120)
     private String representativeName;
+    @JsonAlias("brand_name")
     @Size(max = 160)
     private String brandName;
+    @JsonAlias("business_reg_no")
     @Size(max = 32)
     private String businessRegNo;
     @Size(max = 64)
@@ -27,8 +34,10 @@ public class RoasteryRequestDto {
     private String website;
     @Size(max = 64)
     private String timezone;
+    @JsonAlias("base_currency")
     @Size(max = 8)
     private String baseCurrency;
+    @JsonAlias("default_unit")
     @Size(max = 16)
     private String defaultUnit;
 

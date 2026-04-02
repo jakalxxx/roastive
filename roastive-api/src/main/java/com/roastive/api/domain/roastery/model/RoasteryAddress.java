@@ -48,6 +48,9 @@ public class RoasteryAddress {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "branch_seq_no", nullable = false, length = 4)
+    private String branchSeqNo;
+
     private static String n(String s) {
         if (s == null) return null;
         String t = s.trim();
@@ -118,4 +121,6 @@ public class RoasteryAddress {
     public void setDefault(boolean aDefault) { isDefault = aDefault; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+    public String getBranchSeqNo() { return branchSeqNo; }
+    public void setBranchSeqNo(String branchSeqNo) { this.branchSeqNo = branchSeqNo; }
 }

@@ -35,7 +35,7 @@ public class PurchaseController {
         return m.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    public record PurchaseMasterRequest(@NotNull Long roasteryId,
+    public record PurchaseMasterRequest(@NotNull UUID roasteryId,
                                         @NotNull UUID supplierId,
                                         @NotBlank @Size(max = 40) String purchaseNo,
                                         @Size(max = 80) String invoiceNo,
